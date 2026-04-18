@@ -12,6 +12,7 @@
 #include <linux/sysfs.h>
 #include <uapi/linux/stat.h>
 #include <linux/version.h>
+#include <linux/pm.h>
 
 #include "smu.h"
 
@@ -425,6 +426,23 @@ _CONTINUE_SETUP:
     return 0;
 }
 
+static int ryzen_smu_suspend(struct device *dev) {
+    if (g_driver.drv_kobj)
+        sysfs_remove_group(g_driver.drv_kobj, &drv_attr_group);
+    return 0;
+}
+
+static int ryzen_smu_resume(struct device *dev) {
+    if (g_driver.drv_kobj) {
+        int ret = sysfs_create_group(g_driver.drv_kobj, &drv_attr_group);
+        if (ret)
+            pr_err("Failed to restore sysfs group after resume: %d", ret);
+    }
+    return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(ryzen_smu_pm_ops, ryzen_smu_suspend, ryzen_smu_resume);
+
 static void ryzen_smu_remove(struct pci_dev *dev) {
     // Free allocated resources as well as the SMU
     if (g_driver.pm_table)
@@ -457,9 +475,10 @@ MODULE_DEVICE_TABLE(pci, ryzen_smu_id_table);
 
 static struct pci_driver ryzen_smu_driver = {
     .id_table = ryzen_smu_id_table,
-    .remove = ryzen_smu_remove,
-    .probe = ryzen_smu_probe,
-    .name = KBUILD_MODNAME,
+    .remove   = ryzen_smu_remove,
+    .probe    = ryzen_smu_probe,
+    .name     = KBUILD_MODNAME,
+    .driver   = { .pm = &ryzen_smu_pm_ops },
 };
 
 static int __init ryzen_smu_driver_init(void) {
