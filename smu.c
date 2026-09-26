@@ -3,6 +3,10 @@
 /* Ryzen SMU Root Complex Communication */
 
 #include <asm/io.h>
+#include <asm/processor.h>
+#if __has_include(<asm/cpuid/api.h>)
+#include <asm/cpuid/api.h> /* cpuid_eax()/cpuid_ebx() moved here in Linux 6.16+ */
+#endif
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/pci.h>
